@@ -9,9 +9,9 @@ require 'dotenv/load'
 require 'jwt'
 require 'pp'
 
-set :session_secret, "328479283uf923fu8932fu923uf9832f23f232"
+set :session_secret, '328479283uf923fu8932fu923uf9832f23f232'
 use Rack::Session::Pool
-set :haml, :format => :html5
+set :haml, format: :html5
 
 # Setup the credentials we use to connect to the XeroAPI
 CREDENTIALS = {
@@ -25,7 +25,14 @@ CREDENTIALS = {
 # to the API later. Memoization `||=`` will return a previously initialized client.
 helpers do
   def xero_client
-    @xero_client ||= XeroRuby::ApiClient.new(credentials: CREDENTIALS)
+    @xero_client ||=
+      XeroRuby::ApiClient.new(
+        credentials: CREDENTIALS,
+        config: {
+          timeout: 300,
+          debugging: true
+        }
+      )
   end
 end
 
@@ -60,6 +67,8 @@ end
 # Xero OAuth 2.0 authorisation process
 get '/callback' do
   @token_set = xero_client.get_token_set_from_callback(params)
+  @token_set['connections'] = xero_client.connections
+
   session[:token_set] = @token_set
   redirect to('/')
 end
@@ -95,6 +104,7 @@ end
 # connected.
 get '/disconnect' do
   xero_client.set_token_set(session[:token_set])
+
   # This will disconnect the first organisation that appears in the xero_client.connections array.
   xero_client.disconnect(xero_client.connections[0]['id'])
   @connections = xero_client.connections
@@ -111,7 +121,11 @@ end
 # This endpoint shows invoice data via the 'invoices.haml' view.
 get '/invoices' do
   xero_client.set_token_set(session[:token_set])
-  @invoices = xero_client.accounting_api.get_invoices(xero_client.connections[0]['tenantId']).invoices
+  @invoices =
+    xero_client
+    .accounting_api
+    .get_invoices(session[:token_set]['connections'][0]['tenantId'])
+    .invoices
   haml :invoices
 end
 
@@ -119,12 +133,20 @@ end
 # in the xero_client.connections array.
 get '/organisation' do
   xero_client.set_token_set(session[:token_set])
-  @organisations = xero_client.accounting_api.get_organisations(xero_client.connections[0]['tenantId']).organisations
+  @organisations =
+    xero_client
+    .accounting_api
+    .get_organisations(xero_client.connections[0]['tenantId'])
+    .organisations
   haml :organisation
 end
 
 get '/reports' do
   xero_client.set_token_set(session[:token_set])
-  @reports = xero_client.accounting_api.get_report_ba_sor_gst_list(xero_client.connections[0]['tenantId']).reports
+  @reports =
+    xero_client
+    .accounting_api
+    .get_report_ba_sor_gst_list(xero_client.connections[0]['tenantId'])
+    .reports
   haml :reports
 end

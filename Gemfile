@@ -1,8 +1,9 @@
 source 'https://rubygems.org'
-gem 'sinatra', :github => 'sinatra/sinatra'
+gem 'sinatra'
 gem 'sinatra-contrib' # for 'sinatra/reloader'
-
+gem 'thin'
+gem 'activesupport', '6.1.3.1'
 gem 'haml'
 gem 'dotenv'
 gem 'jwt'
-gem 'xero-ruby'
+gem 'xero-ruby', '3.7.1'
